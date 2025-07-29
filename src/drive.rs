@@ -173,8 +173,12 @@ mod hints {
         if k.is_dir() {
             return None;
         }
+        let end = p.rfind('.')?;
+        // accepts up to 12 chars long extensions 
+        if p.len() - end > 11 { return None } 
+        let ext = &p[end + 1 .. ];
 
-        p.parse::<FileExtension>().ok()
+        ext.parse::<FileExtension>().ok()
     }
 
     // WARN BUG this returns clearly wrong sizes
