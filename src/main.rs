@@ -1,8 +1,7 @@
 use pheasant_core::{Server, get};
 
-mod cache;
 mod drive;
-use drive::{file_hints, read_dir};
+use drive::{file_hints, file_tree, read_dir};
 
 #[tokio::main]
 async fn main() {
@@ -13,6 +12,7 @@ async fn main() {
     server.service(fav);
     server.service(file_hints);
     server.service(read_dir);
+    server.service(file_tree);
 
     server.serve().await;
 }

@@ -171,7 +171,7 @@ impl FileHints {
     // would have been better if new took Node
     pub fn from_err() -> Self {
         Self {
-            name: Node::Err.to_owned(),
+            name: Node::ERROR.to_owned(),
             kind: FileKind::File,
             size: FileSize::null(),
             created: Utc::now(),
@@ -184,7 +184,7 @@ impl FileHints {
 }
 
 mod hints {
-    use std::fs::{File, Metadata};
+    use std::fs::Metadata;
 
     use chrono::{DateTime, Utc};
 
