@@ -5,9 +5,10 @@ use super::{DrivePath, FileHints, read_entry_to_string};
 #[get("/drive/read_dir")]
 #[mime("application/json")]
 pub async fn read_dir(p: DrivePath) -> Vec<u8> {
-    serde_json::to_string(&Directory::new(&p.0))
-        .unwrap()
-        .into_bytes()
+    let dir = &Directory::new(&p.0);
+    println!("{:#?}", dir);
+
+    serde_json::to_string(dir).unwrap().into_bytes()
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]

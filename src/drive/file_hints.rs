@@ -3,7 +3,7 @@ use std::fs::File;
 use chrono::{DateTime, Utc};
 use pheasant_core::{Request, get};
 
-use super::DrivePath;
+use super::{DrivePath, Node};
 
 #[get("/drive/file_hints")]
 #[mime("application/json")]
@@ -115,8 +115,10 @@ impl From<f64> for FileSize {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct FileHints {
+    // the name of the file
+    name: String,
     // the extension of this file; e.g., .js, .rs, .txt, etc.
     ext: Option<FileExtension>,
     // size of file; if dir then sum of children size, if symlink then size of original
@@ -145,6 +147,7 @@ impl FileHints {
 
         let m = f.metadata().unwrap();
 
+        let name = hints::name(&p);
         let kind = hints::kind(&m);
         let size = hints::size(&m, kind);
         let count = hints::count(p, kind);
@@ -154,6 +157,7 @@ impl FileHints {
         let accessed = hints::accessed(&m);
 
         Self {
+            name,
             kind,
             size,
             count,
@@ -167,6 +171,7 @@ impl FileHints {
     // would have been better if new took Node
     pub fn from_err() -> Self {
         Self {
+            name: Node::Err.to_owned(),
             kind: FileKind::File,
             size: FileSize::null(),
             created: Utc::now(),
@@ -185,17 +190,25 @@ mod hints {
 
     use super::{FileExtension, FileKind, FileSize};
 
+    pub(super) fn name(p: &str) -> String {
+        let Some(start) = p.rfind('/') else {
+            return p.to_owned();
+        };
+
+        p[start + 1..].to_owned()
+    }
+
     // WARN BUG this returns None at all cases
     pub(super) fn extension(p: &str, k: FileKind) -> Option<FileExtension> {
         if k.is_dir() {
             return None;
         }
-        let end = p.rfind('.')?;
+        let start = p.rfind('.')?;
         // accepts up to 12 chars long extensions
-        if p.len() - end > 11 {
+        if p.len() - start > 11 {
             return None;
         }
-        let ext = &p[end + 1..];
+        let ext = &p[start + 1..];
 
         ext.parse::<FileExtension>().ok()
     }

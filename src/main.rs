@@ -1,9 +1,8 @@
-use std::io::Read;
-
-use pheasant_core::{Method, Request, Server, Service, get};
+use pheasant_core::{Server, get};
 
 mod cache;
 mod drive;
+use drive::{file_hints, read_dir};
 
 #[tokio::main]
 async fn main() {
@@ -12,7 +11,8 @@ async fn main() {
     server.service(styles);
     server.service(bundle);
     server.service(fav);
-    server.service(drive::file_hints);
+    server.service(file_hints);
+    server.service(read_dir);
 
     server.serve().await;
 }
