@@ -25,14 +25,12 @@ pub async fn file_tree(ftp: FileTreeParams) -> Response {
     let tree = FileTreeWalker::walk(&ftp.path);
     if ftp.ssr {
         let ssr = tree.ssr();
-        println!("{}", ssr);
 
         resp.set_header::<mime::Mime>("Content-Type", "text/html".parse().unwrap());
         resp.update_body(ssr.into_bytes());
 
         return resp;
     }
-    println!("{:#?}", tree);
 
     resp.set_header::<mime::Mime>("Content-Type", "application/json".parse().unwrap());
     resp.update_body(serde_json::to_string(&tree).unwrap().into_bytes());
