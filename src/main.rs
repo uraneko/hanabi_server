@@ -1,4 +1,4 @@
-use pheasant_core::{Server, get};
+use pheasant_core::{Cors, Method, Protocol, Response, Server, Service, get};
 
 mod drive;
 use drive::{drive_hints, file_hints, file_tree, read_dir};
@@ -6,14 +6,16 @@ use drive::{drive_hints, file_hints, file_tree, read_dir};
 #[tokio::main]
 async fn main() {
     let mut server = Server::new([0, 0, 0, 0], 9998, 9999).unwrap();
-    server.service(index);
-    server.service(styles);
-    server.service(bundle);
-    server.service(fav);
-    server.service(file_hints);
-    server.service(read_dir);
-    server.service(file_tree);
-    server.service(drive_hints);
+    server
+        .service(index)
+        .service(styles)
+        .service(bundle)
+        .service(fav)
+        .service(file_hints)
+        .service(read_dir)
+        .service(file_tree)
+        .service(drive_hints)
+        .service(|| Service::new(Method::Options, "*", [], "", opts));
 
     server.serve().await;
 }
@@ -51,4 +53,17 @@ async fn bundle(_: ()) -> Vec<u8> {
 #[mime("image/svg+xml")]
 async fn fav(_: ()) -> Vec<u8> {
     std::fs::read("dist/assets/hanabi.svg").unwrap()
+}
+
+async fn opts(_: (), p: Protocol) -> Response {
+    let mut resp = Response::template(p);
+    let mut cors = Cors::new();
+    cors.methods()
+        .extend(&[Method::Get, Method::Options, Method::Head]);
+    cors.headers().insert("*".into());
+    cors.origin("*");
+
+    resp.set_cors(cors);
+
+    resp
 }
