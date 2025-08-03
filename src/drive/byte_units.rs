@@ -60,10 +60,11 @@ impl ReadableBytes {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 pub enum BytesUnit {
     TiB,
     GiB,
+    #[default]
     MiB,
     KiB,
     B,

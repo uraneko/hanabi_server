@@ -3,7 +3,7 @@ use std::fs::File;
 use chrono::{DateTime, Utc};
 use pheasant_core::{Request, get};
 
-use super::{DrivePath, Node};
+use super::{BytesUnit, DrivePath, Node, ReadableBytes};
 
 #[get("/drive/file_hints")]
 #[mime("application/json")]
@@ -91,11 +91,8 @@ impl FileKind {
 /// units are in bytes
 #[derive(Debug, Default, Clone, Copy, PartialEq, serde::Serialize)]
 struct FileSize {
-    tb: f64,
-    gb: f64,
-    mb: f64,
-    kb: f64,
-    b: f64,
+    size: f64,
+    unit: BytesUnit,
 }
 
 impl FileSize {
@@ -104,14 +101,12 @@ impl FileSize {
     }
 }
 
-impl From<f64> for FileSize {
-    fn from(b: f64) -> Self {
-        let kb = if b > 1024f64 { b / 1024f64 } else { 0. };
-        let mb = if kb > 1024f64 { kb / 1024f64 } else { 0. };
-        let gb = if mb > 1024f64 { mb / 1024f64 } else { 0. };
-        let tb = if gb > 1024f64 { gb / 1024f64 } else { 0. };
-
-        Self { tb, gb, mb, kb, b }
+impl From<ReadableBytes> for FileSize {
+    fn from(b: ReadableBytes) -> Self {
+        Self {
+            size: b.as_float(),
+            unit: b.unit(),
+        }
     }
 }
 
@@ -133,7 +128,7 @@ pub struct FileHints {
     // what kind of file; file | dir | symlink
     kind: FileKind,
     // if dir then how many children are there
-    count: Option<usize>,
+    children: Option<usize>,
     // the svg icon raw data of the file
     // icon: RawSVG<'a>,
 }
@@ -150,7 +145,7 @@ impl FileHints {
         let name = hints::name(&p);
         let kind = hints::kind(&m);
         let size = hints::size(&m, kind);
-        let count = hints::count(p, kind);
+        let children = hints::children(p, kind);
         let ext = hints::extension(p, kind);
         let created = hints::created(&m);
         let modified = hints::modified(&m);
@@ -160,7 +155,7 @@ impl FileHints {
             name,
             kind,
             size,
-            count,
+            children,
             ext,
             created,
             accessed,
@@ -177,7 +172,7 @@ impl FileHints {
             created: Utc::now(),
             accessed: Utc::now(),
             modified: Utc::now(),
-            count: None,
+            children: None,
             ext: None,
         }
     }
@@ -213,23 +208,17 @@ mod hints {
         ext.parse::<FileExtension>().ok()
     }
 
-    // WARN BUG this returns clearly wrong sizes
     pub(super) fn size(m: &Metadata, _k: FileKind) -> FileSize {
         // TODO when kind is symlink, return original file size
         // TODO when kind is dir, return sum of all children sizes
-        (m.len() as f64).into()
-        // match k {
-        //     FileKind::File => (f.len() as f64).into(),
-        //     FileKind::Dir => FileSize::kb(4),
-        //     FileKind::SymLink => {}
-        // }
+        super::ReadableBytes::new(m.len()).into()
     }
 
     pub(super) fn kind(m: &Metadata) -> FileKind {
         m.file_type().into()
     }
 
-    pub(super) fn count(p: &str, k: FileKind) -> Option<usize> {
+    pub(super) fn children(p: &str, k: FileKind) -> Option<usize> {
         if !k.is_dir() {
             return None;
         }
