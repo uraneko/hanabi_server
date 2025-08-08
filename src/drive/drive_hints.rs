@@ -1,9 +1,12 @@
 use fs4::{available_space, free_space, total_space};
-use pheasant_core::get;
+use pheasant::get;
 
 use super::{BytesUnit, ReadableBytes};
 
-#[get("drive/drive_hints")]
+#[get("/drive/drive_hints")]
+#[mime("application/json")]
+#[cors(headers  ="Content-Type", origins = "http://localhost:3000", methods = get)]
+#[re("dh")]
 pub async fn drive_hints(_: ()) -> Vec<u8> {
     let free = available_space(".").unwrap();
     let free = ReadableBytes::new(free);

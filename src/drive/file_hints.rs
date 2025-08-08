@@ -1,7 +1,6 @@
-use std::fs::File;
-
 use chrono::{DateTime, Utc};
-use pheasant_core::{Request, get};
+use pheasant::get;
+use std::fs::File;
 
 use super::{BytesUnit, DrivePath, Node, ReadableBytes};
 

@@ -1,4 +1,4 @@
-use pheasant_core::Request;
+use pheasant::Request;
 use std::fs::DirEntry;
 use std::io::Error as IOError;
 use std::path::Path;
@@ -18,8 +18,8 @@ pub use read_dir::read_paths_from_str;
 
 // TODO base, path
 pub struct DrivePath(String);
-impl From<Request> for DrivePath {
-    fn from(req: Request) -> Self {
+impl From<&Request> for DrivePath {
+    fn from(req: &Request) -> Self {
         Self(req.param("path").unwrap().into())
     }
 }

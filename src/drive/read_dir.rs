@@ -1,4 +1,4 @@
-use pheasant_core::get;
+use pheasant::get;
 
 use super::{DrivePath, FileHints, read_entry_to_string};
 

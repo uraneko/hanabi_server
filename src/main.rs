@@ -1,4 +1,5 @@
-use pheasant_core::{Cors, Method, Protocol, Response, Server, Service, get};
+// use pheasant_core::{Cors, Method, Protocol, Response, Server, Service, get};
+use pheasant::{Server, ServiceBundle, fail, get};
 
 mod drive;
 use drive::{drive_hints, file_hints, file_tree, read_dir};
@@ -15,24 +16,21 @@ async fn main() {
         .service(read_dir)
         .service(file_tree)
         .service(drive_hints)
-        .service(|| Service::new(Method::Options, "*", [], "", opts));
-
+        .failure(not_found)
+        // .service(|| Service::new(Method::Options, "*", [], "", opts));
+;
     server.serve().await;
 }
 
-async fn auth(_: ()) -> Vec<u8> {
-    vec![]
-}
-
-struct Auth {
-    name: String,
-    psw: String,
-    memorize: bool,
-}
+// struct Auth {
+//     name: String,
+//     psw: String,
+//     memorize: bool,
+// }
 
 #[get("/")]
 #[mime("text/html")]
-#[re("index.html", "home")]
+#[re("/index.html", "/home")]
 async fn index(_: ()) -> Vec<u8> {
     std::fs::read("dist/index.html").unwrap()
 }
@@ -55,15 +53,23 @@ async fn fav(_: ()) -> Vec<u8> {
     std::fs::read("dist/assets/hanabi.svg").unwrap()
 }
 
-async fn opts(_: (), p: Protocol) -> Response {
-    let mut resp = Response::template(p);
-    let mut cors = Cors::new();
-    cors.methods()
-        .extend(&[Method::Get, Method::Options, Method::Head]);
-    cors.headers().insert("*".into());
-    cors.origin("*");
+const NOT_FOUND: &[u8] = include_bytes!("../../pheasant/pheasant_core/templates/404.html");
 
-    resp.set_cors(cors);
-
-    resp
+#[fail(404)]
+#[mime("text/html")]
+async fn not_found() -> Vec<u8> {
+    NOT_FOUND.to_owned()
 }
+
+// async fn opts(_: (), p: Protocol) -> Response {
+//     let mut resp = Response::with_proto(p);
+//     let mut cors = Cors::new();
+//     cors.methods()
+//         .extend(&[Method::Get, Method::Options, Method::Head, Method::Post]);
+//     cors.headers().insert("*".into());
+//     cors.origin("*");
+//
+//     resp.set_cors(cors);
+//
+//     resp
+// }

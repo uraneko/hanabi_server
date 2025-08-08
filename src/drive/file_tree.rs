@@ -1,28 +1,24 @@
+use pheasant::{HeaderMap, Mime, Origin, Request, Response, get};
 use std::fs::read_dir;
 
-use pheasant_core::{HeaderMap, Request, Response, get};
-
-use super::{DrivePath, Node, read_paths_from_str};
-
+#[derive(Debug)]
 pub struct FileTreeParams {
     path: String,
     ssr: bool,
-    origin: String,
 }
 
-impl From<Request> for FileTreeParams {
-    fn from(req: Request) -> Self {
+impl From<&Request> for FileTreeParams {
+    fn from(req: &Request) -> Self {
         Self {
             path: req.param("path").unwrap_or(".").into(),
-            ssr: req.has_param("ssr"),
-            origin: req.header("Origin").unwrap_or("*".into()),
+            ssr: req.contains_attr("ssr"),
         }
     }
 }
 
-// TODO macro attrs
-// cors(headers=pairs) attr, status(number) attr
 #[get("/drive/file_tree")]
+#[cors(methods = get, origins = "http://localhost:3000", headers = "Content-Type")]
+#[re("ftree")]
 pub async fn file_tree(ftp: FileTreeParams) -> Response {
     let mut resp = Response::default();
 
@@ -30,16 +26,16 @@ pub async fn file_tree(ftp: FileTreeParams) -> Response {
     if ftp.ssr {
         let ssr = tree.ssr();
 
-        resp.set_header::<mime::Mime>("Content-Type", "text/html".parse().unwrap())
-            .set_header("Access-Control-Allow-Origin", ftp.origin)
+        resp.set_header::<Mime>("Content-Type", "text/html".parse().unwrap())
             .update_body(ssr.into_bytes());
-
-        return resp;
+    } else {
+        resp.set_header::<Mime>("Content-Type", "application/json".parse().unwrap())
+            .update_body(serde_json::to_string(&tree).unwrap().into_bytes());
     }
 
-    resp.set_header::<mime::Mime>("Content-Type", "application/json".parse().unwrap())
-        .set_header("Access-Control-Allow-Origin", ftp.origin)
-        .update_body(serde_json::to_string(&tree).unwrap().into_bytes());
+    // if let Some(ori) = ftp.origin {
+    //     resp.set_header("Access-Control-Allow-Origin", ori);
+    // }
 
     resp
 }
@@ -65,7 +61,6 @@ where
     N: Iterator<Item = Vec<String>>,
 {
     let directory = dirs.next().unwrap();
-    println!(">>>{}", directory);
     let nodes = nodes
         .next()
         .unwrap()

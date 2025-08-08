@@ -208,8 +208,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "fs4",
- "mime",
- "pheasant_core",
+ "pheasant",
  "serde",
  "serde_json",
  "tokio",
@@ -345,12 +344,6 @@ dependencies = [
  "icu_normalizer",
  "icu_properties",
 ]
-
-[[package]]
-name = "impls"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a46645bbd70538861a90d0f26c31537cdf1e44aae99a794fb75a664b70951bc"
 
 [[package]]
 name = "io-uring"
@@ -499,6 +492,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
+name = "pheasant"
+version = "0.1.0"
+dependencies = [
+ "pheasant_core",
+ "pheasant_macro_fail",
+ "pheasant_macro_get",
+ "pheasant_macro_utils",
+ "pheasant_uri",
+]
+
+[[package]]
 name = "pheasant_core"
 version = "0.1.0"
 dependencies = [
@@ -506,30 +510,51 @@ dependencies = [
  "crossbeam-channel",
  "deflate",
  "mime",
- "pheasant_macro_error_code",
- "pheasant_macro_get",
+ "pheasant_uri",
+ "proc-macro2",
+ "quote",
  "serde",
  "serde_json",
+ "syn",
  "tokio",
  "url",
 ]
 
 [[package]]
-name = "pheasant_macro_error_code"
+name = "pheasant_macro_fail"
 version = "0.1.0"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "pheasant_macro_utils",
 ]
 
 [[package]]
 name = "pheasant_macro_get"
 version = "0.1.1"
 dependencies = [
- "impls",
+ "pheasant_macro_utils",
+]
+
+[[package]]
+name = "pheasant_macro_utils"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "pheasant_core",
+ "pheasant_uri",
  "proc-macro2",
  "quote",
+ "serde_json",
+ "syn",
+]
+
+[[package]]
+name = "pheasant_uri"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
  "syn",
 ]
 
@@ -634,9 +659,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.141"
+version = "1.0.142"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b9eff21ebe718216c6ec64e1d9ac57087aad11efc64e32002bce4a0d4c03d3"
+checksum = "030fedb782600dcbd6f02d479bf0d817ac3bb40d644745b769d6a96bc3afc5a7"
 dependencies = [
  "itoa",
  "memchr",
