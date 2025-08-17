@@ -6,6 +6,7 @@ use super::{BytesUnit, DrivePath, Node, ReadableBytes};
 
 #[get("/drive/file_hints")]
 #[mime("application/json")]
+#[cors(headers = "Content-Type", origins = "http://localhost:3000", methods = get)]
 pub async fn file_hints(f: DrivePath) -> Vec<u8> {
     let hints = FileHints::new(&f.0);
     println!("{:#?}", hints);
@@ -111,10 +112,10 @@ impl From<ReadableBytes> for FileSize {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct FileHints {
-    // the name of the file
-    name: String,
     // the extension of this file; e.g., .js, .rs, .txt, etc.
     ext: Option<FileExtension>,
+    // the name of the file
+    name: String,
     // size of file; if dir then sum of children size, if symlink then size of original
     size: FileSize,
     // when was it created
@@ -127,7 +128,7 @@ pub struct FileHints {
     // what kind of file; file | dir | symlink
     kind: FileKind,
     // if dir then how many children are there
-    children: Option<usize>,
+    entries: Option<usize>,
     // the svg icon raw data of the file
     // icon: RawSVG<'a>,
 }
@@ -144,7 +145,7 @@ impl FileHints {
         let name = hints::name(&p);
         let kind = hints::kind(&m);
         let size = hints::size(&m, kind);
-        let children = hints::children(p, kind);
+        let entries = hints::entries(p, kind);
         let ext = hints::extension(p, kind);
         let created = hints::created(&m);
         let modified = hints::modified(&m);
@@ -154,7 +155,7 @@ impl FileHints {
             name,
             kind,
             size,
-            children,
+            entries,
             ext,
             created,
             accessed,
@@ -171,7 +172,7 @@ impl FileHints {
             created: Utc::now(),
             accessed: Utc::now(),
             modified: Utc::now(),
-            children: None,
+            entries: None,
             ext: None,
         }
     }
@@ -217,7 +218,7 @@ mod hints {
         m.file_type().into()
     }
 
-    pub(super) fn children(p: &str, k: FileKind) -> Option<usize> {
+    pub(super) fn entries(p: &str, k: FileKind) -> Option<usize> {
         if !k.is_dir() {
             return None;
         }
@@ -226,6 +227,7 @@ mod hints {
     }
 
     pub(super) fn created(m: &Metadata) -> DateTime<Utc> {
+        // WARN this can crash with creation time is not available for the system
         let systime = m.created().unwrap();
 
         systime.into()

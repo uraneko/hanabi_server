@@ -2,7 +2,7 @@
 use pheasant::{Server, ServiceBundle, fail, get};
 
 mod drive;
-use drive::{drive_hints, file_hints, file_tree, read_dir};
+use drive::{download, drive_hints, file_hints, file_tree, read_dir, upload};
 
 #[tokio::main]
 async fn main() {
@@ -16,7 +16,9 @@ async fn main() {
         .service(read_dir)
         .service(file_tree)
         .service(drive_hints)
-        .failure(not_found)
+        .service(download)
+        .service(upload)
+        .error(not_found)
         // .service(|| Service::new(Method::Options, "*", [], "", opts));
 ;
     server.serve().await;

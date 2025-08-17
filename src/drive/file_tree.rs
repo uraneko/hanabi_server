@@ -5,6 +5,10 @@ use std::fs::read_dir;
 pub struct FileTreeParams {
     path: String,
     ssr: bool,
+    file: String,
+    children: String,
+    parent: String,
+    dir: String,
 }
 
 impl From<&Request> for FileTreeParams {
@@ -12,6 +16,13 @@ impl From<&Request> for FileTreeParams {
         Self {
             path: req.param("path").unwrap_or(".").into(),
             ssr: req.contains_attr("ssr"),
+            file: req.param("file").unwrap_or("<styles/File>").to_owned(),
+            children: req
+                .param("children")
+                .unwrap_or("<styles/Children>")
+                .to_owned(),
+            parent: req.param("parent").unwrap_or("<styles/Parent>").to_owned(),
+            dir: req.param("dir").unwrap_or("<styles/Dir>").to_owned(),
         }
     }
 }
@@ -24,7 +35,7 @@ pub async fn file_tree(ftp: FileTreeParams) -> Response {
 
     let tree = FileTreeWalker::walk(&ftp.path);
     if ftp.ssr {
-        let ssr = tree.ssr();
+        let ssr = tree.ssr(&ftp.file, &ftp.dir, &ftp.parent, &ftp.children);
 
         resp.set_header::<Mime>("Content-Type", "text/html".parse().unwrap())
             .update_body(ssr.into_bytes());
@@ -55,7 +66,16 @@ struct FileTree {
 
 // TODO server has to set a cookie with base
 // WARN this is all unsanitized
-fn dir<D, N>(dirs: &mut D, nodes: &mut N, base: &str) -> String
+fn dir<D, N>(
+    dirs: &mut D,
+    nodes: &mut N,
+    base: &str,
+    level: u8,
+    fc: &str,
+    dc: &str,
+    pc: &str,
+    cc: &str,
+) -> String
 where
     D: Iterator<Item = String>,
     N: Iterator<Item = Vec<String>>,
@@ -67,36 +87,36 @@ where
         .into_iter()
         .map(|node| {
             if std::path::Path::new(&format!("{}/{}", base, &node)).is_dir() {
-                dir(dirs, nodes, base)
+                dir(dirs, nodes, base, level + 1, fc, dc, pc, cc)
             } else {
-                file(&node)
+                file(&node, level + 1, fc)
             }
         })
         .collect::<String>();
 
+    // TODO properly do solidjs components ssr
+    // hint: see solidjs Dynamic component
     format!(
-        "
-        <div class='dir'>
-            <span>{directory}</span>
-            <div class='entries'>
-                {nodes}
-            </div>
-        </div>\n"
+        "<div class='{dc}' level='{level}' name='{directory}' nodes='{nodes}'>
+<span class='{pc}' level='{level}'>{directory}</span>
+<div class='{cc}' level='{level}'>{nodes}</div>
+</div>"
     )
 }
 
-fn file(file_name: &str) -> String {
-    format!("<span>{file_name}</span>\n\t\t")
+fn file(file_name: &str, level: u8, file_class: &str) -> String {
+    format!("<span class='{file_class}' level='{level}' name='{file_name}'>{file_name}</span>")
 }
 
 impl FileTree {
     // server side render the solid component html from this data
-    fn ssr(self) -> String {
+    fn ssr(self, fc: &str, dc: &str, pc: &str, cc: &str) -> String {
         let base = self.base;
         let mut dirs = self.dirs.into_iter();
         let mut nodes = self.nodes.into_iter();
+        let level = 0u8;
 
-        dir(&mut dirs, &mut nodes, &base)
+        dir(&mut dirs, &mut nodes, &base, level, fc, dc, pc, cc)
     }
 }
 

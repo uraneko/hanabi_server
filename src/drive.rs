@@ -4,17 +4,18 @@ use std::io::Error as IOError;
 use std::path::Path;
 
 mod byte_units;
+pub mod download;
 pub mod drive_hints;
 pub mod file_hints;
 pub mod file_tree;
 pub mod read_dir;
 
 use byte_units::*;
+pub use download::{download, upload};
 pub use drive_hints::drive_hints;
 pub use file_hints::{FileHints, file_hints};
 pub use file_tree::file_tree;
 pub use read_dir::read_dir;
-pub use read_dir::read_paths_from_str;
 
 // TODO base, path
 pub struct DrivePath(String);

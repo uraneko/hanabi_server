@@ -1,9 +1,11 @@
 use pheasant::get;
+use std::path::Path;
 
 use super::{DrivePath, FileHints, read_entry_to_string};
 
 #[get("/drive/read_dir")]
 #[mime("application/json")]
+#[cors(headers = "Content-Type", origins = "http://localhost:3000", methods = get)]
 pub async fn read_dir(p: DrivePath) -> Vec<u8> {
     let dir = &Directory::new(&p.0);
     println!("{:#?}", dir);
@@ -16,6 +18,13 @@ pub struct Directory(Vec<FileHints>);
 
 impl Directory {
     pub fn new(path: &str) -> Self {
+        let path = Path::new(path);
+        let path = if path.exists() && path.is_dir() {
+            path
+        } else {
+            Path::new(".")
+        };
+
         let dir = std::fs::read_dir(path).unwrap();
 
         Self(read_annotated_from_iter(dir))
