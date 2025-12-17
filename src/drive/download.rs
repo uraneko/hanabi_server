@@ -5,8 +5,9 @@ use std::{fs, io::Write};
 // TODO content-dispositon header for downloads
 #[get("drive/download")]
 #[mime("application/octet-stream")]
-#[cors(methods = get, origins = "http://localhost:3000", headers = "*")]
+#[cors(methods = get, origins = "*", headers = "*")]
 pub async fn download(dp: DrivePath) -> Response {
+    println!("{}", dp.0);
     let mut resp = Response::default();
     resp.update_body(std::fs::read(dp.0).unwrap())
         .set_header("Content-Disposition", "attachment".to_owned());
@@ -35,7 +36,7 @@ impl From<&Request> for Upload {
 
 #[post("drive/upload")]
 #[mime("text/plain")]
-#[cors(methods = [post, get], origins = "http://localhost:3000", headers = "*")]
+#[cors(methods = post, origins = "*", headers = "*")]
 pub async fn upload(up: Upload) -> Vec<u8> {
     let mut file = fs::File::create(up.name).unwrap();
 

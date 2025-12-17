@@ -6,7 +6,7 @@ use super::{BytesUnit, DrivePath, Node, ReadableBytes};
 
 #[get("/drive/file_hints")]
 #[mime("application/json")]
-#[cors(headers = "Content-Type", origins = "http://localhost:3000", methods = get)]
+#[cors(headers = "Content-Type", origins = "*", methods = get)]
 pub async fn file_hints(f: DrivePath) -> Vec<u8> {
     let hints = FileHints::new(&f.0);
     println!("{:#?}", hints);

@@ -28,7 +28,7 @@ impl From<&Request> for FileTreeParams {
 }
 
 #[get("/drive/file_tree")]
-#[cors(methods = get, origins = "http://localhost:3000", headers = "Content-Type")]
+#[cors(methods = get, origins = "*", headers = "Content-Type")]
 #[re("ftree")]
 pub async fn file_tree(ftp: FileTreeParams) -> Response {
     let mut resp = Response::default();

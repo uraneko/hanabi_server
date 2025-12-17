@@ -1,14 +1,17 @@
 // use pheasant_core::{Cors, Method, Protocol, Response, Server, Service, get};
-use pheasant::{Server, ServiceBundle, fail, get};
+use pheasant::{SecureServer, Server, ServerCluster, fail, get};
 
 mod drive;
-use drive::{download, drive_hints, file_hints, file_tree, read_dir, upload};
+use drive::{download, drive_hints, file_hints, file_tree, read_dir, upload, view};
 
 #[tokio::main]
 async fn main() {
-    let mut server = Server::new([0, 0, 0, 0], 9998, 9999).unwrap();
-    server
-        .service(index)
+    let ServerCluster {
+        mut http,
+        mut https,
+    } = ServerCluster::new([0, 0, 0, 0], 9998, 3004, "tls/cert.pem", "tls/key.pem").unwrap();
+
+    http.service(index)
         .service(styles)
         .service(bundle)
         .service(fav)
@@ -18,17 +21,12 @@ async fn main() {
         .service(drive_hints)
         .service(download)
         .service(upload)
-        .error(not_found)
-        // .service(|| Service::new(Method::Options, "*", [], "", opts));
-;
-    server.serve().await;
-}
+        .service(view)
+        .error(not_found);
+    // .service(|| Service::new(Method::Options, "*", [], "", opts));
 
-// struct Auth {
-//     name: String,
-//     psw: String,
-//     memorize: bool,
-// }
+    http.serve().await;
+}
 
 #[get("/")]
 #[mime("text/html")]
@@ -55,7 +53,7 @@ async fn fav(_: ()) -> Vec<u8> {
     std::fs::read("dist/assets/hanabi.svg").unwrap()
 }
 
-const NOT_FOUND: &[u8] = include_bytes!("../../pheasant/pheasant_core/templates/404.html");
+const NOT_FOUND: &[u8] = include_bytes!("../../pheasant/crates/pheasant_core/templates/404.html");
 
 #[fail(404)]
 #[mime("text/html")]

@@ -9,6 +9,7 @@ pub mod drive_hints;
 pub mod file_hints;
 pub mod file_tree;
 pub mod read_dir;
+pub mod view;
 
 use byte_units::*;
 pub use download::{download, upload};
@@ -16,6 +17,7 @@ pub use drive_hints::drive_hints;
 pub use file_hints::{FileHints, file_hints};
 pub use file_tree::file_tree;
 pub use read_dir::read_dir;
+pub use view::view;
 
 // TODO base, path
 pub struct DrivePath(String);

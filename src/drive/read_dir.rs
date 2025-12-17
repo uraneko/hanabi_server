@@ -5,7 +5,7 @@ use super::{DrivePath, FileHints, read_entry_to_string};
 
 #[get("/drive/read_dir")]
 #[mime("application/json")]
-#[cors(headers = "Content-Type", origins = "http://localhost:3000", methods = get)]
+#[cors(headers = "Content-Type", origins = "*", methods = get)]
 pub async fn read_dir(p: DrivePath) -> Vec<u8> {
     let dir = &Directory::new(&p.0);
     println!("{:#?}", dir);

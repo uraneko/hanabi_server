@@ -20,7 +20,7 @@ impl From<&Request> for Truncated {
 
 #[get("/drive/drive_hints")]
 #[mime("application/json")]
-#[cors(headers = "Content-Type", origins = "http://localhost:3000", methods = get)]
+#[cors(headers = "Content-Type", origins = "*", methods = get)]
 #[re("dh")]
 pub async fn drive_hints(req: Request) -> Vec<u8> {
     let free = available_space(".").unwrap();
