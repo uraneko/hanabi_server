@@ -46,7 +46,7 @@ impl Auth {
 impl Resource<Socket> for Auth {
     // gets current auth token
     async fn get(&self, socket: &mut Socket, req: Request, resp: &mut Respond) -> HttpResult<()> {
-        std::thread::sleep(std::time::Duration::from_millis(4000));
+        // std::thread::sleep(std::time::Duration::from_millis(1372));
         let cookies = ReadCookies::from_headers(req.headers()).map_err(|_| err_stt!(400))?;
         if !cookies.contains(b"tkn") {
             let mut cookies = WriteCookies::new();

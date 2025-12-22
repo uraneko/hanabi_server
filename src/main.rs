@@ -14,7 +14,8 @@ enum Error {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let mut socket = Socket::builder([127, 10, 10, 1], 6668)
+    let mut socket = Socket::builder([127, 10, 10, 1], 6680)
+        .database("data/master.db3")
         .build()
         .map_err(|_| Error::ServerMishap)?;
 
