@@ -7,3 +7,6 @@ edition = "2024"
 tokio = { version = "1.46.1", features = ["full"] }
 pheasant = { version = "0.1.0", path = "../pheasant" }
 sqlite = "0.37.0"
+
+[build-dependencies]
+sqlite = "0.37.0"
