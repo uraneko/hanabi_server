@@ -1,6 +1,6 @@
 use pheasant::http::{Method, Protocol, Respond, request::Request, status};
 use pheasant::services::{
-    Server, Socket, bad_request, parse, read_stream, req_buf, resp_write_stream,
+    Server, Socket, bad_request, error_status, parse, read_stream, req_buf, resp_write_stream,
 };
 
 mod services;
@@ -15,7 +15,7 @@ enum Error {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let mut socket = Socket::builder([127, 10, 10, 1], 6680)
-        .database("data/master.db3")
+        .database("data/main.db3")
         .build()
         .map_err(|_| Error::ServerMishap)?;
 
@@ -50,7 +50,10 @@ async fn main() -> Result<(), Error> {
                         continue;
                     }
                 };
-                _ = this.service(req, &mut resp, service).await;
+                if let Err(err) = this.service(req, &mut resp, service).await {
+                    error_status(err, &mut resp);
+                    resp_write_stream(&resp, &mut stream, method)?;
+                }
                 print_resp(&resp);
                 resp_write_stream(&resp, &mut stream, method)?;
             }
