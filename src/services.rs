@@ -1,4 +1,4 @@
-use pheasant::http::{ErrorStatus, Header, Method, Respond, err_stt, request::Request};
+use pheasant::http::{ErrorStatus, Method, Respond, err_stt, request::Request, status};
 use pheasant::services::{
     Cors, MessageBodyInfo, ReadCookies, Resource, Service, Socket, WriteCookies,
 };
@@ -50,18 +50,7 @@ impl Resource<Socket> for Auth {
         };
 
         // std::thread::sleep(std::time::Duration::from_millis(1372));
-        let cookies = ReadCookies::from_headers(req.headers()).map_err(|_| err_stt!(400))?;
-        if !cookies.contains(b"tkn") {
-            let mut cookies = WriteCookies::new();
-            // set a traveller token cookie for the recent user
-            cookies
-                .cookie(b"tkn", b"3r2eFE^$TGRE^#EWF")
-                .samesite(0)
-                .secure(true)
-                .partitioned(true)
-                .max_age(183);
-            _ = cookies.write(b"tkn", resp.headers_mut());
-        }
+
         cors(&req, resp)?;
 
         let data = format!("{}", 1).into_bytes();
@@ -97,7 +86,12 @@ impl Resource<Socket> for Auth {
 
     // changes the auth token
     // elevates or drops user
-    async fn post(&self, socket: &mut Socket, req: Request, resp: &mut Respond) -> HttpResult<()> {
+    async fn post(
+        &self,
+        socket: &mut Socket,
+        req: Request,
+        resp: &mut Respond,
+    ) -> Result<(), ErrorStatus> {
         let Some(data) = req.body() else {
             return err_stt!(?400);
         };
@@ -106,12 +100,51 @@ impl Resource<Socket> for Auth {
             return self.put(socket, req, resp).await;
         }
 
+        let form = Login::parse(data)?;
+        let mut stt = socket
+            .conn
+            .prepare("select * from users where name = ? and password = ?")
+            .map_err(|_| err_stt!(500))?;
+        stt.bind_iter::<_, (_, &str)>([
+            (1, form.name.as_str().into()),
+            (2, form.pswd.as_str().into()),
+        ])
+        .map_err(|_| err_stt!(500))?;
+        match stt.next() {
+            Ok(sqlite::State::Row) => (),
+            Ok(sqlite::State::Done) | Err(_) => return err_stt!(?500),
+        }
+
+        let (Ok(name), Ok(pswd)) = (
+            stt.read::<String, _>("name"),
+            stt.read::<String, _>("password"),
+        ) else {
+            return err_stt!(?500);
+        };
+        form.match_user(&name, &pswd)?;
+        let cookies = ReadCookies::from_headers(req.headers()).map_err(|_| err_stt!(400))?;
+        if !cookies.contains(b"tkn") {
+            let mut cookies = WriteCookies::new();
+            // set a traveller token cookie for the recent user
+            cookies
+                .cookie(b"tkn", b"boukennoshou")
+                .samesite(0)
+                .secure(true)
+                .partitioned(true);
+            _ = cookies.write(b"tkn", resp.headers_mut());
+        }
+
         Ok(())
     }
 
     // creates a new auth token
     // happens when user opens site
-    async fn put(&self, socket: &mut Socket, req: Request, resp: &mut Respond) -> HttpResult<()> {
+    async fn put(
+        &self,
+        socket: &mut Socket,
+        req: Request,
+        resp: &mut Respond,
+    ) -> Result<(), ErrorStatus> {
         let Some(data) = req.body() else {
             return err_stt!(?400);
         };
@@ -120,13 +153,17 @@ impl Resource<Socket> for Auth {
         let mut stt = socket
             .conn
             .prepare("insert into users values (:name, :password)")
-            .unwrap();
+            .map_err(|_| err_stt!(500))?;
         stt.bind_iter::<_, (_, sqlite::Value)>([
             (":name", form.name.into()),
             (":password", form.pswd.into()),
         ])
-        .unwrap();
-        while let Ok(sqlite::State::Row) = stt.next() {}
+        .map_err(|_| err_stt!(500))?;
+        stt.next().map_err(|_| err_stt!(500))?;
+        resp.status(status!(201));
+        let msg = b"new account created successfully";
+        MessageBodyInfo::new(msg);
+        resp.body_mut().extend(msg);
 
         Ok(())
     }
@@ -161,6 +198,32 @@ pub fn route_user_method(method: Method, action: &str) -> HttpResult<Method> {
     }
 
     err_stt!(?400)
+}
+
+#[derive(Debug, Default)]
+struct Login {
+    name: String,
+    pswd: String,
+}
+
+impl Login {
+    fn parse(slice: &[u8]) -> Result<Self, ErrorStatus> {
+        let mut form = Self::default();
+        let mut idx = 0;
+
+        form.name = user_name(&slice[idx..], &mut idx)?;
+        form.pswd = user_pswd(&slice[idx..], &mut idx)?;
+
+        Ok(form)
+    }
+
+    fn match_user(&self, name: &str, pswd: &str) -> Result<(), ErrorStatus> {
+        if self.name == name && self.pswd == pswd {
+            Ok(())
+        } else {
+            err_stt!(?500)
+        }
+    }
 }
 
 #[derive(Debug, Default)]
