@@ -22,6 +22,17 @@ const USERS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     Ok(Table::new("users", layout, opts))
 });
 
+const CONFIGS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
+    let mut opts = TableOptions::new();
+    opts.make(true).check(true).remake(false);
+    let layout = TableLayout::with_columns([
+        ("name", "text|nn|pk".parse()?),
+        ("configs", "text|nn".parse()?),
+    ]);
+
+    Ok(Table::new("configs", layout, opts))
+});
+
 const TOKENS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
     opts.make(true).check(true).remake(false);
@@ -42,11 +53,12 @@ fn main() -> Result<(), Error> {
 
     let users = USERS_TABLE.clone()?;
     let tokens = TOKENS_TABLE.clone()?;
-    let main_db = Database::with_tables(MAIN_DB, [users, tokens]);
+    let configs = CONFIGS_TABLE.clone()?;
+    let main_db = Database::with_tables(MAIN_DB, [users, tokens, configs]);
     let db = DbPipeline::with_dbs(data_dir, main_db);
     db.build()?;
 
-    let js_dir = Dir::from_path("../../js/hanabi/");
+    let js_dir = Dir::from_path("../../js/hanabi/hanabi");
     js_dir.goto()?;
     let ui = UiPipeline::new()
         .build(&["pnpm", "build"])

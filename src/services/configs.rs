@@ -1,13 +1,20 @@
 use hanabi_configs::{configs::Configs as Configuration, parse::Parse};
-use pheasant::http::{
+use pheasant::prologue::{
     ErrorStatus, Method, err_stt, header_value,
     server::{Request, Respond},
     status,
 };
-use pheasant::services::{Cors, MessageBodyInfo, ReadCookies, Resource, Socket, WriteCookies};
+use pheasant::services::{
+    Content, Cors, ReadCookies, Resource, WriteCookies, socket::server::Socket,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 
+// There should be 2 types of configs
+// - the server general configs which only the admin who has the server installed can edit and are
+// found in 'data/config.ini'
+// - the user configs which only a user has access to after they login and
+// some of their values (such as the active colorscheme) overwrite the general configs'
 pub enum Configs {
     Read,
     Write,
@@ -37,7 +44,7 @@ impl Resource<Socket> for Configs {
         };
 
         let configs = serde_json::to_vec(&CONFIGS.clone()?).map_err(|_| err_stt!(500))?;
-        MessageBodyInfo::new(&configs).dump_headers(resp.headers_mut());
+        Content::new(&configs).dump_headers(resp.headers_mut());
         resp.body_mut().extend(configs);
 
         Ok(())

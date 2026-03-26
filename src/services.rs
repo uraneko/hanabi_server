@@ -1,8 +1,8 @@
-use pheasant::http::{
+use pheasant::prologue::{
     ErrorStatus, err_stt,
     server::{Request, Respond},
 };
-use pheasant::services::{Resource, Service, Socket};
+use pheasant::services::{Resource, Service, socket::server::Socket};
 
 mod auth;
 mod configs;
@@ -43,4 +43,11 @@ pub fn lookup(path: &str) -> Result<Services, ErrorStatus> {
         p if APP_ROUTES.contains(&p) || p.starts_with("/assets/") => Services::Routing,
         _ => return err_stt!(?404),
     })
+}
+
+pub fn gateway_router(path: &str) -> Option<&str> {
+    match path {
+        p if p.starts_with("/file") => Some("127.0.0.1:9898"),
+        _ => None,
+    }
 }

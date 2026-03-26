@@ -1,9 +1,9 @@
 use crate::services::APP_ROUTES;
-use pheasant::http::{
+use pheasant::prologue::{
     ErrorStatus, err_stt,
     server::{Request, Respond},
 };
-use pheasant::services::{MessageBodyInfo, Resource, Socket};
+use pheasant::services::{Content, Resource, socket::server::Socket};
 use std::io::Read;
 
 // fetch a frontend file
@@ -39,7 +39,7 @@ impl<'a> Resource<Socket> for Routing<'a> {
         change_dir("build")?;
         let n = read_dyn(self.path, resp.body_mut())?;
 
-        MessageBodyInfo::with_len(n)
+        Content::with_len(n)
             .mime_from_ext(self.ext)
             .dump_headers(resp.headers_mut());
         change_dir("..")?;

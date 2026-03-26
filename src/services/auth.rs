@@ -1,9 +1,11 @@
-use pheasant::http::{
+use pheasant::prologue::{
     ErrorStatus, Method, err_stt, header_value,
     server::{Request, Respond},
     status,
 };
-use pheasant::services::{Cors, MessageBodyInfo, ReadCookies, Resource, Socket, WriteCookies};
+use pheasant::services::{
+    Content, Cors, ReadCookies, Resource, WriteCookies, socket::server::Socket,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::{Row, sqlite::SqliteRow};
@@ -101,7 +103,7 @@ async fn init(socket: &mut Socket, req: Request, resp: &mut Respond) -> Result<(
         user.access_token = access.as_str();
         let user = user.serialize()?;
         resp.body_mut().extend(&user);
-        MessageBodyInfo::new(&user).dump_headers(resp.headers_mut());
+        Content::new(&user).dump_headers(resp.headers_mut());
         WriteCookies::clear(b"ident_token", resp.headers_mut());
     } else if let Some(refresh) = cookies.get(Token::REFRESH.as_bytes()) {
         let db_refresh = Token::from_encoded(Token::REFRESH, refresh)?;
@@ -123,9 +125,9 @@ async fn init(socket: &mut Socket, req: Request, resp: &mut Respond) -> Result<(
         // since it is stored in the db in hashed format
         let access = Token::access()?;
         let user = User::serialized(&name, None, access.as_str())?;
-        MessageBodyInfo::new(&user).dump_headers(resp.headers_mut());
+        Content::new(&user).dump_headers(resp.headers_mut());
     } else {
-        MessageBodyInfo::new(b"")
+        Content::new(b"")
             .force_mime("application/json")
             .map_err(|_| err_stt!(500))?
             .dump_headers(resp.headers_mut());
@@ -186,7 +188,7 @@ impl Resource<Socket> for Auth {
             _ => return err_stt!(?500),
         };
 
-        MessageBodyInfo::new(msg).dump_headers(resp.headers_mut());
+        Content::new(msg).dump_headers(resp.headers_mut());
         resp.body_mut().extend(msg);
 
         Ok(())
@@ -308,7 +310,7 @@ impl Resource<Socket> for Auth {
         )?;
 
         resp.body_mut().extend(&user_state);
-        MessageBodyInfo::new(&user_state).dump_headers(resp.headers_mut());
+        Content::new(&user_state).dump_headers(resp.headers_mut());
 
         if persist_session {
             let refresh = Token::refresh()?;

@@ -271,10 +271,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-io"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eb1aa714776b75c7e67e1da744b81a129b3ff919c8712b5e1b32252c1f07cc7"
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
+name = "errno"
+version = "0.3.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
+dependencies = [
+ "libc",
+ "windows-sys 0.61.2",
+]
 
 [[package]]
 name = "etcetera"
@@ -879,6 +895,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-into-ascii"
+version = "0.1.0"
+
+[[package]]
 name = "num-iter"
 version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -962,35 +982,52 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 name = "pheasant"
 version = "0.1.0"
 dependencies = [
- "pheasant_http",
- "pheasant_services",
- "pheasant_uri",
+ "pheasant-prologue",
+ "pheasant-services",
+ "pheasant-socket",
+ "pheasant-uri",
 ]
 
 [[package]]
-name = "pheasant_http"
+name = "pheasant-prologue"
 version = "0.1.0"
 dependencies = [
+ "embedded-io",
  "hashbrown 0.16.1",
  "mime",
- "pheasant_uri",
+ "pheasant-uri",
 ]
 
 [[package]]
-name = "pheasant_services"
+name = "pheasant-services"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "embedded-io",
  "hashbrown 0.16.1",
  "mime",
- "pheasant_http",
- "pheasant_uri",
+ "num-into-ascii",
+ "pheasant-prologue",
+ "pheasant-socket",
+ "pheasant-uri",
  "sha2",
  "sqlx",
 ]
 
 [[package]]
-name = "pheasant_uri"
+name = "pheasant-socket"
+version = "0.1.0"
+dependencies = [
+ "errno",
+ "pheasant-sys",
+]
+
+[[package]]
+name = "pheasant-sys"
+version = "0.1.0"
+
+[[package]]
+name = "pheasant-uri"
 version = "0.1.0"
 dependencies = [
  "hashbrown 0.16.1",
