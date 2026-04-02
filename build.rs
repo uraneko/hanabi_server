@@ -10,7 +10,7 @@ const DATA_PATH: &str = "data";
 const MAIN_DB: &str = concat!("data", "/", "main.db3");
 const USERS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
-    opts.make(true).check(true).remake(false);
+    opts.check(true).remake(false);
     let layout = TableLayout::with_columns([
         ("name", "text|nn|pk".parse()?),
         ("email", "blob|u".parse()?),
@@ -24,10 +24,11 @@ const USERS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
 
 const CONFIGS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
-    opts.make(true).check(true).remake(false);
+    opts.make(true).check(true).remake(true);
     let layout = TableLayout::with_columns([
         ("name", "text|nn|pk".parse()?),
-        ("configs", "text|nn".parse()?),
+        ("configs", "blob|nn".parse()?),
+        ("pfp", "blob|u".parse()?),
     ]);
 
     Ok(Table::new("configs", layout, opts))
@@ -35,7 +36,7 @@ const CONFIGS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
 
 const TOKENS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
-    opts.make(true).check(true).remake(false);
+    opts.check(true).remake(false);
     let layout = TableLayout::with_columns([
         ("name", "text|nn|pk".parse()?),
         ("refresh", "blob|u".parse()?),

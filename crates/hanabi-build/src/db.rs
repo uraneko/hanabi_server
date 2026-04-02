@@ -218,7 +218,12 @@ impl Table {
     pub fn check_columns(&self, conn: &Connection) -> Result<(), Error> {
         if !conn
             .prepare(&["select * from ", self.name, " limit 0"].concat())
-            .map(|stt| stt.column_names() == self.layout.column_names().as_slice())
+            .map(|stt| {
+                let slice = self.layout.column_names();
+                let cols = stt.column_names();
+
+                cols.iter().all(|c| slice.contains(c)) && slice.iter().all(|c| cols.contains(c))
+            })
             .map_err(|_| Error::DbFailedToProcessQueryRow)?
         {
             return Err(Error::DbTableColumnsMismatch);
@@ -329,7 +334,7 @@ impl Database {
                 // println!("checking table");
 
                 match t.check(&state) {
-                    ok @ Ok(_) => return ok,
+                    Ok(_) => (),
                     e @ Err(Error::DbTableNotFound) => {
                         if t.options.make {
                             let name = t.make(&self.conn)?;
