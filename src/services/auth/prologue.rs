@@ -1,5 +1,5 @@
 use makura::{Decode, Encode};
-use pheasant::prologue::{ErrorStatus, err_stt};
+use pheasant::http::{ErrorStatus, err_stt};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 

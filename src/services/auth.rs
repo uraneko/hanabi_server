@@ -1,8 +1,5 @@
-use pheasant::prologue::{
-    ErrorStatus, Method, err_stt, header_value,
-    server::{Request, Respond},
-    status,
-};
+use crate::{Request, Respond};
+use pheasant::http::{ErrorStatus, Method, err_stt, header_value, status};
 use pheasant::services::{
     Content, Cors, ReadCookies, Resource, WriteCookies, socket::server::Socket,
 };

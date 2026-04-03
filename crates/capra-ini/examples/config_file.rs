@@ -1,7 +1,7 @@
 use core::iter::Peekable;
-use hanabi_configs::configs::Configs;
-use hanabi_configs::parse::{AnalyzeSemantics, AnalyzeSyntax, Error, Lex, Parse, parse_vec};
-use hanabi_configs::parse::{Attribute, Component, Property, Section};
+use capra_ini::configs::Configs;
+use capra_ini::parse::{AnalyzeSemantics, AnalyzeSyntax, Error, Lex, Parse, parse_vec};
+use capra_ini::parse::{Attribute, Component, Property, Section};
 use std::collections::HashMap;
 
 fn main() -> Result<(), &'static str> {

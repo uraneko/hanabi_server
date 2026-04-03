@@ -1,7 +1,5 @@
-use pheasant::prologue::{
-    ErrorStatus, err_stt,
-    server::{Request, Respond},
-};
+use crate::{Request, Respond};
+use pheasant::http::{ErrorStatus, err_stt};
 use pheasant::services::{Resource, Service, socket::server::Socket};
 
 mod auth;
@@ -45,9 +43,9 @@ pub fn lookup(path: &str) -> Result<Services, ErrorStatus> {
     })
 }
 
-pub fn gateway_router(path: &str) -> Option<&str> {
-    match path {
-        p if p.starts_with("/file") => Some("127.0.0.1:9898"),
+pub fn gateway_router(req: &Request) -> Option<&str> {
+    match req.path_str() {
+        p if p.starts_with("/file") => Some("127.0.0.1:6608"),
         _ => None,
     }
 }

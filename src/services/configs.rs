@@ -1,14 +1,40 @@
-use hanabi_configs::{configs::Configs as Configuration, parse::Parse};
-use pheasant::prologue::{
-    ErrorStatus, Method, err_stt, header_value,
-    server::{Request, Respond},
-    status,
-};
+use crate::{Request, Respond};
+use capra_ini::{configs::Configs as Configuration, parse::Parse};
+use pheasant::http::{ErrorStatus, Method, err_stt, header_value, status};
 use pheasant::services::{
     Content, Cors, ReadCookies, Resource, WriteCookies, socket::server::Socket,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
+
+// these are on the db 
+#[derive(Deserialize)]
+pub struct CachedConfigs {
+    email_address: Option<Vec<u8>>,
+    send_me_emails: bool,
+}
+
+pub struct ConfigData {
+    account: Account,
+    plugins: Plugins,
+}
+
+pub struct Account {
+    user_name: Vec<u8>,
+    email_address: Vec<u8>,
+}
+
+pub struct Plugins {
+    // every bit represents a plugin
+    installed: u16,
+
+}
+
+pub struct ConfigJson {
+    headers: Vec<u8>,
+    account: ,
+    plugins: ,
+}
 
 // There should be 2 types of configs
 // - the server general configs which only the admin who has the server installed can edit and are

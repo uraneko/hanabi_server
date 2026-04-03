@@ -1,8 +1,6 @@
 use crate::services::APP_ROUTES;
-use pheasant::prologue::{
-    ErrorStatus, err_stt,
-    server::{Request, Respond},
-};
+use crate::{Request, Respond};
+use pheasant::http::{ErrorStatus, err_stt};
 use pheasant::services::{Content, Resource, socket::server::Socket};
 use std::io::Read;
 

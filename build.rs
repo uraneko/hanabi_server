@@ -1,4 +1,4 @@
-use hanabi_build::{
+use capra_build::{
     Error,
     db::{Database, DbPipeline, Table, TableLayout, TableOptions},
     dirs::Dir,
@@ -47,7 +47,7 @@ const TOKENS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
 });
 
 fn main() -> Result<(), Error> {
-    println!("cargo:rerun-if-changed=../../js/hanabi/hanabi*/src");
+    println!("cargo:rerun-if-changed=../../js/capra/capra*/src");
     let cargo_dir = Dir::new()?;
     let mut data_dir = cargo_dir.clone();
     data_dir.push(DATA_PATH);
@@ -59,7 +59,7 @@ fn main() -> Result<(), Error> {
     let db = DbPipeline::with_dbs(data_dir, main_db);
     db.build()?;
 
-    let js_dir = Dir::from_path("../../js/hanabi/hanabi");
+    let js_dir = Dir::from_path("../../js/capra/capra");
     js_dir.goto()?;
     let ui = UiPipeline::new()
         .build(&["pnpm", "build"])

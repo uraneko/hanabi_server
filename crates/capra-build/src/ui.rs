@@ -56,7 +56,7 @@ fn build_ui(cmd: &[&str]) -> Result<ExitStatus, Error> {
 
 fn copy_ui(from: &str, to: &str) -> Result<ExitStatus, Error> {
     Cmd::new("cp")
-        // .args(&["build", "-r", "../../../rust/hanabi"])
+        // .args(&["build", "-r", "../../../rust/capra"])
         .args(&[from, "-r", to])
         .status()
         .map_err(|_| Error::UiFailedToCopyPackageFiles)

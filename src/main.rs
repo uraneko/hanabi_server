@@ -1,4 +1,4 @@
-use pheasant::prologue::{ErrorStatus, Protocol, err_stt, server::Respond, status};
+use pheasant::http::{ErrorStatus, Header, Protocol, err_stt, status};
 use pheasant::services::{
     GateWay, Server, http_error,
     print::server::{print_req, print_resp},
@@ -9,6 +9,9 @@ use pheasant::services::{
 mod services;
 use services::lookup;
 
+type Request = pheasant::http::Request<Vec<Header>>;
+type Respond = pheasant::http::Respond<Vec<u8>>;
+
 #[derive(Debug)]
 enum Error {
     ServerMishap,
@@ -18,7 +21,7 @@ enum Error {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let mut socket = Socket::builder("127.0.0.1:6680")
+    let mut socket = Socket::builder("127.0.0.1:6688")
         .map_err(|_| Error::ServerUninit)?
         .database("data/main.db3")
         .build()
@@ -51,27 +54,54 @@ async fn event_loop(server: &mut Socket) -> Result<(), ErrorStatus> {
             continue;
         };
         print_req(&req);
+
+        // gateway handling
         if let Some(addr) =
-            GateWay::route(services::gateway_router, &req.path_str()).map_err(|_| err_stt!(500))?
+            GateWay::route(services::gateway_router, &req).map_err(|_| err_stt!(500))?
         {
-            let mut ssock =
-                pheasant::services::socket::client::Socket::new(4096).map_err(|_| err_stt!(500))?;
-            ssock.connect(addr).map_err(|_| err_stt!(500))?;
-            let req: pheasant::prologue::client::Request = req.into();
-            println!(
-                "{:?}",
-                str::from_utf8(&req.stream_bytes().into_iter().collect::<Vec<u8>>())
-            );
-            let mut resp = GateWay::service(&mut ssock, req)
+            let sockk = pheasant::socket::Socket::new(
+                pheasant::socket::AddressFamily::Inet,
+                pheasant::socket::SocketType::Stream,
+                pheasant::socket::ProtocolNumber::Tcp,
+            )
+            .map_err(|_| err_stt!(500))?;
+            let mut sockk: pheasant::socket::Socket<pheasant::socket::SockAddrIn> =
+                sockk.init("127.0.0.1:6680".try_into().map_err(|_| err_stt!(500))?);
+
+            pheasant::socket::SetSockOpts::new(sockk.fd())
+                .reuse_address(true)
                 .map_err(|_| err_stt!(500))?
-                .into();
-            println!(">{:?}<", resp);
+                .reuse_port(true)
+                .map_err(|_| err_stt!(500))?;
+            sockk.bind().map_err(|e| {
+                println!("{:?}", e);
+                err_stt!(500)
+            })?;
+            println!("0");
+
+            println!("===>> {:?} \n\n {:?}", sockk, addr);
+
+            let addr = addr.try_into().map_err(|_| err_stt!(500))?;
+            println!("{:?} \n\n {:?}", sockk, addr);
+            sockk.connect(&addr).map_err(|err| {
+                println!("{:?}", err);
+                err_stt!(500)
+            })?;
+            let mut buf = [0u8; 4096];
+            let req = req.into();
+            println!("1");
+            let mut resp =
+                GateWay::service(&mut sockk, req, &mut buf).map_err(|_| err_stt!(500))?;
+            println!("2");
 
             server
                 .write(client.fd(), &mut resp)
                 .map_err(|_| err_stt!(500))?;
-
+            println!("3");
             client.shutdown_readwrite().map_err(|_| err_stt!(500))?;
+            sockk.shutdown_readwrite().map_err(|_| err_stt!(500))?;
+            sockk.close().map_err(|_| err_stt!(500))?;
+            println!("4");
 
             continue;
         }
