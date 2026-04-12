@@ -31,35 +31,3 @@ const CONFIGS: LazyLock<Result<ServerConfig, Error>> = LazyLock::new(|| {
 
     ServerConfig::parse(&data).map_err(|_| Error::FailedToParseConfigFile)
 });
-
-pub struct UserConfig {
-    account: (),
-    account_security: Security,
-    plugins: Vec<Plugin>,
-    colors: Vec<Colorscheme>,
-    // TODO
-    colors_build: (),
-}
-
-pub struct Security {
-    send_me_emails: bool,
-    expose_my_address: bool,
-}
-
-pub struct Plugin {
-    depict: String,
-    root: String,
-    accent: String,
-    address: String,
-}
-
-pub struct Colorscheme {
-    pinned: bool,
-    props: HashMap<String, Prop>,
-    selectors: HashMap<String, Vec<usize>>,
-}
-
-pub struct Prop {
-    value: String,
-    idx: usize,
-}
