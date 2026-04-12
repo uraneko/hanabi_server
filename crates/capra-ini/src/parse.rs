@@ -29,6 +29,8 @@ pub enum Error {
 }
 
 pub trait Parse: Sized + Default {
+    fn stream(&self) -> impl IntoIterator<Item = u8>;
+
     fn parse(input: &[u8]) -> Result<Self, Error> {
         let tokens = Lex::new(input).lex()?;
         let groups = AnalyzeSyntax::new(tokens).analyze()?;
