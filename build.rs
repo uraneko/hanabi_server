@@ -12,11 +12,11 @@ const USERS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
     opts.check(true).make(true);
     let layout = TableLayout::with_columns([
-        ("name", "text|nn|pk".parse()?),
-        ("email", "blob|u".parse()?),
-        ("pswd", "blob|nn|u".parse()?),
-        ("salt", "text|nn|u".parse()?),
-        ("created", "int|nn".parse()?),
+        ("name", "text|nn|pk".try_into()?),
+        ("email", "blob|u".try_into()?),
+        ("pswd", "blob|nn|u".try_into()?),
+        ("salt", "text|nn|u".try_into()?),
+        ("created", "int|nn".try_into()?),
     ]);
 
     Ok(Table::new("users", layout, opts))
@@ -26,9 +26,9 @@ const CONFIGS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
     opts.check(true).make(true);
     let layout = TableLayout::with_columns([
-        ("name", "text|nn|pk".parse()?),
-        ("configs", "blob|nn".parse()?),
-        ("pfp", "blob|u".parse()?),
+        ("user", "text|nn|foreign(users[name])".try_into()?),
+        ("configs", "blob|nn".try_into()?),
+        ("pfp", "blob|u".try_into()?),
     ]);
 
     Ok(Table::new("configs", layout, opts))
@@ -38,9 +38,9 @@ const TOKENS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
     opts.check(true).make(true);
     let layout = TableLayout::with_columns([
-        ("name", "text|nn|pk".parse()?),
-        ("refresh", "blob|u".parse()?),
-        ("access", "blob|u".parse()?),
+        ("user", "text|nn|foreign(users[name])".try_into()?),
+        ("refresh", "blob|u".try_into()?),
+        ("access", "blob|u".try_into()?),
     ]);
 
     Ok(Table::new("tokens", layout, opts))

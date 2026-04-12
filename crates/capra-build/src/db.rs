@@ -16,22 +16,22 @@ use std::path::Path;
 // }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
-pub struct TableLayout {
-    columns: HashMap<&'static str, ColumnOptions>,
+pub struct TableLayout<'a> {
+    columns: HashMap<&'static str, ColumnOptions<'a>>,
 }
 
-impl TableLayout {
+impl<'a> TableLayout<'a> {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn with_columns(i: impl IntoIterator<Item = (&'static str, ColumnOptions)>) -> Self {
+    pub fn with_columns(i: impl IntoIterator<Item = (&'static str, ColumnOptions<'a>)>) -> Self {
         Self {
             columns: HashMap::from_iter(i.into_iter()),
         }
     }
 
-    pub fn column(&mut self, key: &'static str, opts: ColumnOptions) -> &mut Self {
+    pub fn column(&mut self, key: &'static str, opts: ColumnOptions<'a>) -> &mut Self {
         self.columns.insert(key, opts);
 
         self
@@ -39,7 +39,7 @@ impl TableLayout {
 
     pub fn columns(
         &mut self,
-        i: impl IntoIterator<Item = (&'static str, ColumnOptions)>,
+        i: impl IntoIterator<Item = (&'static str, ColumnOptions<'a>)>,
     ) -> &mut Self {
         self.columns.extend(i);
 
@@ -51,37 +51,60 @@ impl TableLayout {
     }
 
     pub fn sql(&self) -> String {
-        self.columns
+        let mut foreigns = String::new();
+        let sql = self
+            .columns
             .iter()
-            .map(|(col, opts)| opts.sql(col))
+            .map(|(col, opts)| {
+                if let Some(decl) = opts.foreign_key_declaration(col) {
+                    foreigns.push_str(&decl);
+                    foreigns.push(',');
+                }
+
+                opts.sql(col)
+            })
             .reduce(|acc, col| acc + ", " + &col)
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        if foreigns.is_empty() {
+            return sql;
+        }
+
+        foreigns.pop();
+        format!("{}, {}", sql, foreigns)
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct ColumnOptions {
+pub struct ColumnOptions<'a> {
+    /// column values must be unique from each other
     unique: bool,
+    /// column values can be null
     nullable: bool,
+    /// is primary key
     pk: bool,
+    /// is foreign key
+    fk: Option<[&'a str; 2]>,
+    // sqlite type of the column
     type_: Type,
 }
 
-impl Default for ColumnOptions {
+impl Default for ColumnOptions<'_> {
     fn default() -> Self {
         Self {
             unique: true,
             nullable: false,
             pk: false,
+            fk: None,
             type_: Type::Integer,
         }
     }
 }
 
-impl core::str::FromStr for ColumnOptions {
-    type Err = Error;
+impl<'a> TryFrom<&'a str> for ColumnOptions<'a> {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn try_from(s: &'a str) -> Result<Self, Self::Error> {
         let mut chunks = s.split('|');
         let Some(ty) = chunks.next() else {
             return Err(Error::DbInvalidConversionStr);
@@ -90,8 +113,9 @@ impl core::str::FromStr for ColumnOptions {
         let mut unique = false;
         let mut nullable = true;
         let mut pk = false;
+        let mut fk = None;
         for chunk in chunks {
-            update_column_option_from_str(chunk, &mut unique, &mut nullable, &mut pk)?
+            update_column_option_from_str(chunk, &mut unique, &mut nullable, &mut pk, &mut fk)?
         }
 
         Ok(Self {
@@ -99,24 +123,41 @@ impl core::str::FromStr for ColumnOptions {
             unique,
             nullable,
             pk,
+            fk,
         })
     }
 }
 
-fn update_column_option_from_str(
-    s: &str,
+fn update_column_option_from_str<'a>(
+    s: &'a str,
     unique: &mut bool,
     nullable: &mut bool,
     pk: &mut bool,
+    foreign: &mut Option<[&'a str; 2]>,
 ) -> Result<(), Error> {
     match s {
         "u" => *unique = true,
         "nn" => *nullable = false,
         "pk" => *pk = true,
+        fk if fk.starts_with("foreign(") => *foreign = Some(parse_foreign_key(fk)?),
         _ => return Err(Error::DbInvalidConversionStr),
     }
 
     Ok(())
+}
+
+// foreign(ftname[fcname])
+fn parse_foreign_key(s: &str) -> Result<[&str; 2], Error> {
+    let Some(obracket) = s.chars().position(|ch| ch == '[') else {
+        return Err(Error::DbInvalidConversionStr);
+    };
+    let table = &s[8..obracket];
+    let Some(cbracket) = s.chars().position(|ch| ch == ']') else {
+        return Err(Error::DbInvalidConversionStr);
+    };
+    let column = &s[obracket + 1..cbracket];
+
+    Ok([table, column])
 }
 
 fn sqlite_type_from_str(s: &str) -> Result<Type, Error> {
@@ -130,7 +171,7 @@ fn sqlite_type_from_str(s: &str) -> Result<Type, Error> {
     })
 }
 
-impl ColumnOptions {
+impl<'a> ColumnOptions<'a> {
     pub fn new(type_: Type) -> Self {
         Self {
             type_,
@@ -138,8 +179,15 @@ impl ColumnOptions {
         }
     }
 
+    pub fn foreign_key_declaration(&self, column_name: &str) -> Option<String> {
+        self.fk.map(|[ft, fc]| {
+            return format!("foreign key({}) references {}({})", column_name, ft, fc);
+        })
+    }
+
     pub fn sql(&self, s: &str) -> String {
         let mut s = s.to_owned();
+
         s.push(' ');
         s.push_str(&self.type_.to_string());
 
@@ -194,14 +242,14 @@ impl TableOptions {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Table {
+pub struct Table<'a> {
     name: &'static str,
-    layout: TableLayout,
+    layout: TableLayout<'a>,
     options: TableOptions,
 }
 
-impl Table {
-    pub fn new(name: &'static str, layout: TableLayout, options: TableOptions) -> Self {
+impl<'a> Table<'a> {
+    pub fn new(name: &'static str, layout: TableLayout<'a>, options: TableOptions) -> Self {
         Self {
             name,
             layout,
@@ -268,15 +316,18 @@ impl Table {
 
     pub fn make(&self, conn: &Connection) -> Result<String, Error> {
         conn.execute(&self.sql(), [])
-            .map_err(|_| Error::DbTableCreateFailed)
+            .map_err(|err| {
+                println!("{:?}", err);
+                Error::DbTableCreateFailed
+            })
             .map(|_| self.name.to_owned())
     }
 }
 
 #[derive(Debug)]
-pub struct Database {
+pub struct Database<'a> {
     conn: Connection,
-    tables: Vec<Table>,
+    tables: Vec<Table<'a>>,
     state: Vec<String>,
 }
 
@@ -290,7 +341,7 @@ fn get_db_tables(conn: &Connection) -> Result<Vec<String>, Error> {
         .map_err(|_| Error::DbFailedToProcessQueryRow)
 }
 
-impl Database {
+impl<'a> Database<'a> {
     // NOTE `Connection::open` creates a new db if it doesnt exist
     pub fn new(path: impl AsRef<Path>) -> Result<Self, Error> {
         let conn = Connection::open(path).map_err(|_| Error::DbFailedToOpenDB)?;
@@ -304,7 +355,7 @@ impl Database {
 
     pub fn with_tables(
         path: impl AsRef<Path>,
-        tables: impl IntoIterator<Item = Table>,
+        tables: impl IntoIterator<Item = Table<'a>>,
     ) -> Result<Self, Error> {
         let conn = Connection::open(path).map_err(|_| Error::DbFailedToOpenDB)?;
         let state = get_db_tables(&conn)?;
@@ -371,12 +422,12 @@ impl Database {
 }
 
 #[derive(Debug)]
-pub struct DbPipeline {
+pub struct DbPipeline<'a> {
     dir: Dir,
-    databases: Vec<Database>,
+    databases: Vec<Database<'a>>,
 }
 
-impl DbPipeline {
+impl<'a> DbPipeline<'a> {
     pub fn new(dir: Dir) -> Self {
         Self {
             dir,
@@ -384,14 +435,14 @@ impl DbPipeline {
         }
     }
 
-    pub fn with_dbs(dir: Dir, dbs: impl IntoIterator<Item = Database>) -> Self {
+    pub fn with_dbs(dir: Dir, dbs: impl IntoIterator<Item = Database<'a>>) -> Self {
         Self {
             dir,
             databases: Vec::from_iter(dbs.into_iter()),
         }
     }
 
-    pub fn database(&mut self, db: Database) -> &mut Self {
+    pub fn database(&mut self, db: Database<'a>) -> &mut Self {
         self.databases.push(db);
 
         self
