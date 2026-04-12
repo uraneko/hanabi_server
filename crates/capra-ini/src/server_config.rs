@@ -8,7 +8,7 @@ use std::collections::HashMap;
 #[derive(Debug, Default, serde::Serialize, Clone)]
 pub struct ServerConfig {
     plugins: HashMap<String, Plugin>,
-    colors: HashMap<String, Colorscheme>,
+    colors: Colorschemes,
     // TODO
 }
 
@@ -27,6 +27,12 @@ pub struct Colorscheme {
     disabled: bool,
     props: HashMap<String, Prop>,
     selectors: HashMap<String, Vec<usize>>,
+}
+
+#[derive(Debug, Default, serde::Serialize, Clone)]
+pub struct Colorschemes {
+    preferred: Option<String>,
+    schemes: HashMap<String, Colorscheme>,
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone)]
@@ -58,6 +64,7 @@ impl Parse for ServerConfig {
     ) -> Result<(), Error> {
         match section.as_slice() {
             [val] if val == "main" => return Ok(()),
+            [root] if root == "colors" => self.parse_colorschemes(iter)?,
             [root, branch] if root == "plugins" => self.parse_plugin(section.remove(1), iter)?,
             [root, branch] if root == "colors" => {
                 self.parse_colorscheme(section.remove(1), iter)?
@@ -76,11 +83,27 @@ impl Parse for ServerConfig {
             .flatten();
         let colorschemes = self
             .colors
+            .schemes
             .iter()
             .map(|(n, c)| stream_scheme(n, c))
             .flatten();
 
-        plugins.chain(b"\n".iter().copied()).chain(colorschemes)
+        plugins
+            .chain(Some(b'\n'))
+            .chain(
+                self.colors
+                    .preferred
+                    .as_ref()
+                    .map(|prf| {
+                        b"[colors]\npreferred = "
+                            .into_iter()
+                            .chain(prf.as_bytes().into_iter())
+                            .chain(b"\n".into_iter())
+                    })
+                    .unwrap_or_default()
+                    .copied(),
+            )
+            .chain(colorschemes)
     }
 }
 
@@ -106,6 +129,29 @@ impl ServerConfig {
             parse_plugin_comp(comp, &mut drive)?;
         }
         self.plugins.insert(name, drive);
+
+        Ok(())
+    }
+
+    // handles the [colors] section
+    fn parse_colorschemes(
+        &mut self,
+        iter: &mut Peekable<impl Iterator<Item = Component>>,
+    ) -> Result<(), Error> {
+        let Some(peeked) = iter.peek() else {
+            return Ok(());
+        };
+        if peeked.is_section() {
+            return Ok(());
+        }
+
+        let Some(Component::Property(Property { key, val })) = iter.next() else {
+            return Err(Error::UnexpectedComponent);
+        };
+        if key != "preferred" {
+            return Err(Error::UndesirablePropertyKey);
+        }
+        self.colors.preferred = Some(val);
 
         Ok(())
     }
@@ -148,7 +194,7 @@ impl ServerConfig {
                 parse_scheme_comp(comp, &mut scheme)?;
             }
         }
-        self.colors.insert(name, scheme);
+        self.colors.schemes.insert(name, scheme);
 
         Ok(())
     }
