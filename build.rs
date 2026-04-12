@@ -7,10 +7,10 @@ use capra_build::{
 use std::sync::LazyLock;
 
 const DATA_PATH: &str = "data";
-const MAIN_DB: &str = concat!("data", "/", "main.db3");
+const MAIN_DB: &str = "data/main.db3";
 const USERS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
-    opts.check(true).remake(false);
+    opts.check(true).make(true);
     let layout = TableLayout::with_columns([
         ("name", "text|nn|pk".parse()?),
         ("email", "blob|u".parse()?),
@@ -24,7 +24,7 @@ const USERS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
 
 const CONFIGS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
-    opts.make(true).check(true).remake(true);
+    opts.check(true).make(true);
     let layout = TableLayout::with_columns([
         ("name", "text|nn|pk".parse()?),
         ("configs", "blob|nn".parse()?),
@@ -36,7 +36,7 @@ const CONFIGS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
 
 const TOKENS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
     let mut opts = TableOptions::new();
-    opts.check(true).remake(false);
+    opts.check(true).make(true);
     let layout = TableLayout::with_columns([
         ("name", "text|nn|pk".parse()?),
         ("refresh", "blob|u".parse()?),
@@ -47,7 +47,7 @@ const TOKENS_TABLE: LazyLock<Result<Table, Error>> = LazyLock::new(|| {
 });
 
 fn main() -> Result<(), Error> {
-    println!("cargo:rerun-if-changed=../../js/capra/capra*/src");
+    println!("cargo:rerun-if-changed=../../js/capra.client/capra*/src");
     let cargo_dir = Dir::new()?;
     let mut data_dir = cargo_dir.clone();
     data_dir.push(DATA_PATH);
@@ -59,7 +59,7 @@ fn main() -> Result<(), Error> {
     let db = DbPipeline::with_dbs(data_dir, main_db);
     db.build()?;
 
-    let js_dir = Dir::from_path("../../js/capra/capra");
+    let js_dir = Dir::from_path("../../js/capra.client/capra");
     js_dir.goto()?;
     let ui = UiPipeline::new()
         .build(&["pnpm", "build"])

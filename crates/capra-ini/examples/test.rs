@@ -1,6 +1,6 @@
-use core::iter::Peekable;
 use capra_ini::parse::{AnalyzeSemantics, AnalyzeSyntax, Error, Lex, Parse, parse_vec};
 use capra_ini::parse::{Attribute, Component, Property, Section};
+use core::iter::Peekable;
 
 const INPUT: &[u8; 67] =
     b"logging\nverbosity=warn\n[apps]\n\rinstalled=drive comms machines\n[abc]";
@@ -17,7 +17,7 @@ fn main() {
     // let components = analyze.analyze();
     // println!("{:?}", components);
 
-    let parsed = Test::deserialize(INPUT);
+    let parsed = Test::parse(INPUT);
     println!("{:?}", parsed);
 }
 
@@ -38,7 +38,7 @@ struct Apps {
 }
 
 impl Parse for Test {
-    fn deserialize(slice: &[u8]) -> Result<Self, Error> {
+    fn parse(slice: &[u8]) -> Result<Self, Error> {
         let tokens = Lex::new(slice).lex()?;
         let groups = AnalyzeSyntax::new(tokens).analyze()?;
         let components = AnalyzeSemantics::new(groups).analyze()?;

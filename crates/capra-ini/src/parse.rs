@@ -29,11 +29,11 @@ pub enum Error {
 }
 
 pub trait Parse: Sized + Default {
-    fn deserialize(input: &[u8]) -> Result<Self, Error> {
+    fn parse(input: &[u8]) -> Result<Self, Error> {
         let tokens = Lex::new(input).lex()?;
         let groups = AnalyzeSyntax::new(tokens).analyze()?;
         let components = AnalyzeSemantics::new(groups).analyze()?;
-        // println!("{:?}", components);
+        // println!("{:#?}", components);
         if components.is_empty() {
             return Err(Error::InputIsEmpty);
         }
@@ -45,7 +45,6 @@ pub trait Parse: Sized + Default {
 
         let mut parsed = Self::default();
         while let Some(Component::Section(Section(section))) = iter.next() {
-            // println!("{:?}", section);
             parsed.parse_section(section, &mut iter)?;
         }
 
@@ -59,13 +58,14 @@ pub trait Parse: Sized + Default {
     ) -> Result<(), Error>;
 }
 
-pub fn parse_vec(s: &str) -> Result<Vec<String>, Error> {
-    let v: Vec<String> = s.split(' ').map(|s| s.into()).collect();
-    if v.is_empty() {
+pub fn parse_vec<S: core::str::FromStr>(s: &str) -> Result<Vec<S>, Error> {
+    if !s.contains(' ') {
         return Err(Error::FailedToParseValue);
     }
 
-    Ok(v)
+    s.split(' ')
+        .map(|s| s.parse().map_err(|_| Error::FailedToParseValue))
+        .collect::<Result<Vec<S>, Error>>()
 }
 
 macro_rules! convert_err {

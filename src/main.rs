@@ -8,6 +8,7 @@ use pheasant::services::{
 
 mod services;
 use services::lookup;
+mod config;
 
 type Request = pheasant::http::Request<Vec<Header>>;
 type Respond = pheasant::http::Respond<Vec<u8>>;
@@ -15,7 +16,6 @@ type Respond = pheasant::http::Respond<Vec<u8>>;
 #[derive(Debug)]
 enum Error {
     ServerMishap,
-    ServerBroken,
     ServerUninit,
 }
 
