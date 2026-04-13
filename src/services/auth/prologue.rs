@@ -29,7 +29,7 @@ pub struct User<'a> {
     pub email: Option<&'a str>,
     pub access_token: &'a str,
     pub config: GeneralConfig,
-    pub pfp: Option<&'a [u8]>,
+    pub pfp: Option<&'a str>,
 }
 
 impl<'a> User<'a> {
@@ -45,7 +45,7 @@ impl<'a> User<'a> {
             email,
             access_token,
             config: config.into(),
-            pfp,
+            pfp: pfp.map(|_| "/user/view/pfp"),
         }
     }
 

@@ -11,8 +11,8 @@ use sha2::{Digest, Sha256};
 use sqlx::{Row, sqlite::SqliteRow};
 use std::sync::LazyLock;
 
-mod operations;
-mod prologue;
+pub(crate) mod operations;
+pub(crate) mod prologue;
 
 use operations::{
     db_cache_login_access, db_clear_login_access, db_clear_login_access_nameless,
@@ -312,10 +312,12 @@ impl Resource<Socket> for Auth {
         )?;
         let config = data.try_get("config").map_err(|_| err_stt!(503))?;
         let config = UserConfig::parse(config).map_err(|_| err_stt!(500))?;
+        // TODO add in memory db caching
+        // then this pfp can be cached and sent again to the user when they ask for it it by
+        // requesting '/user/view/pfp'
         let pfp: Option<&[u8]> = data.try_get("pfp").map_err(|_| err_stt!(503))?;
 
         let access = Token::access()?;
-
         let user_state = User::serialized(
             &name,
             email.as_ref().map(|s: &String| s.as_str()),
@@ -420,7 +422,7 @@ pub struct CacheUser {
     access_token: String,
 }
 
-fn extract_sole_row(mut rows: Vec<SqliteRow>) -> Result<SqliteRow, ErrorStatus> {
+pub fn extract_sole_row(mut rows: Vec<SqliteRow>) -> Result<SqliteRow, ErrorStatus> {
     let Some(row) = rows.pop() else {
         return err_stt!(?403);
     };

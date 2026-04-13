@@ -214,3 +214,31 @@ pub async fn db_fetch_user_config_pfp(
         .fetch_all(conn)
         .await
 }
+
+pub async fn db_fetch_user_pfp(conn: &mut SqliteConnection, name: &str) -> Result<Vec<SqliteRow>> {
+    sqlx::query("select pfp from configs where user = $1")
+        .bind(name)
+        .fetch_all(conn)
+        .await
+}
+
+pub async fn db_get_name_from_access(
+    conn: &mut SqliteConnection,
+    access: &[u8],
+) -> Result<Vec<SqliteRow>> {
+    sqlx::query("select user from tokens where access = $1")
+        .bind(access)
+        .fetch_all(conn)
+        .await
+}
+
+pub async fn db_update_user_pfp(conn: &mut SqliteConnection, name: &str, pfp: &[u8]) -> Result<()> {
+    sqlx::query("update configs set pfp = $1 where user = $2")
+        .bind(pfp)
+        .bind(name)
+        .execute(conn)
+        .await?
+        .rows_affected();
+
+    Ok(())
+}
