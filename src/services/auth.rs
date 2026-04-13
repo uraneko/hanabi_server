@@ -1,4 +1,7 @@
 use crate::{Request, Respond};
+use capra_ini::parse::Parse;
+use capra_ini::server_config::ServerConfig;
+use capra_ini::user_config::UserConfig;
 use pheasant::http::{ErrorStatus, Method, err_stt, header_value, status};
 use pheasant::services::{
     Content, Cors, ReadCookies, Resource, WriteCookies, socket::server::Socket,
@@ -6,14 +9,16 @@ use pheasant::services::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::{Row, sqlite::SqliteRow};
+use std::sync::LazyLock;
 
 mod operations;
 mod prologue;
 
 use operations::{
     db_cache_login_access, db_clear_login_access, db_clear_login_access_nameless,
-    db_clear_login_refresh, db_query_field_availability, db_write_login_refresh,
-    get_name_by_refresh, get_user_by_email, get_user_by_name, register_user,
+    db_clear_login_refresh, db_fetch_user_config_pfp, db_query_field_availability,
+    db_write_login_refresh, get_name_by_refresh, get_user_by_email, get_user_by_name,
+    register_user,
 };
 use prologue::{Token, User, password};
 
@@ -118,10 +123,12 @@ async fn init(socket: &mut Socket, req: Request, resp: &mut Respond) -> Result<(
                 .map_err(|_| err_stt!(500))?,
         )?;
 
+        let config = SERVER_CONFIG.clone()?;
+
         // NOTE cant provide the user email
         // since it is stored in the db in hashed format
         let access = Token::access()?;
-        let user = User::serialized(&name, None, access.as_str())?;
+        let user = User::serialized(&name, None, access.as_str(), config, None)?;
         Content::new(&user).dump_headers(resp.headers_mut());
     } else {
         Content::new(b"")
@@ -298,12 +305,23 @@ impl Resource<Socket> for Auth {
             (name, None)
         };
 
+        let data = extract_sole_row(
+            db_fetch_user_config_pfp(&mut socket.conn, &name)
+                .await
+                .map_err(|_| err_stt!(422))?,
+        )?;
+        let config = data.try_get("config").map_err(|_| err_stt!(503))?;
+        let config = UserConfig::parse(config).map_err(|_| err_stt!(500))?;
+        let pfp: Option<&[u8]> = data.try_get("pfp").map_err(|_| err_stt!(503))?;
+
         let access = Token::access()?;
 
         let user_state = User::serialized(
             &name,
             email.as_ref().map(|s: &String| s.as_str()),
             access.as_str(),
+            config,
+            pfp,
         )?;
 
         resp.body_mut().extend(&user_state);
@@ -412,3 +430,9 @@ fn extract_sole_row(mut rows: Vec<SqliteRow>) -> Result<SqliteRow, ErrorStatus> 
 
     Ok(row)
 }
+
+const SERVER_CONFIG: LazyLock<Result<ServerConfig, ErrorStatus>> = LazyLock::new(|| {
+    let config = std::fs::read("config.ini").map_err(|_| err_stt!(500))?;
+
+    ServerConfig::parse(&config).map_err(|_| err_stt!(500))
+});

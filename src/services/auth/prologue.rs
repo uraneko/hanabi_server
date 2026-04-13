@@ -1,21 +1,51 @@
+use capra_ini::{server_config::ServerConfig, user_config::UserConfig};
 use makura::{Decode, Encode};
 use pheasant::http::{ErrorStatus, err_stt};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum GeneralConfig {
+    User(UserConfig),
+    Server(ServerConfig),
+    Merged {},
+}
+
+impl From<UserConfig> for GeneralConfig {
+    fn from(config: UserConfig) -> Self {
+        Self::User(config)
+    }
+}
+
+impl From<ServerConfig> for GeneralConfig {
+    fn from(config: ServerConfig) -> Self {
+        Self::Server(config)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User<'a> {
     pub name: &'a str,
     pub email: Option<&'a str>,
     pub access_token: &'a str,
+    pub config: GeneralConfig,
+    pub pfp: Option<&'a [u8]>,
 }
 
 impl<'a> User<'a> {
-    pub fn new(name: &'a str, email: Option<&'a str>, access_token: &'a str) -> Self {
+    pub fn new(
+        name: &'a str,
+        email: Option<&'a str>,
+        access_token: &'a str,
+        config: impl Into<GeneralConfig>,
+        pfp: Option<&'a [u8]>,
+    ) -> Self {
         Self {
             name,
             email,
             access_token,
+            config: config.into(),
+            pfp,
         }
     }
 
@@ -31,8 +61,11 @@ impl<'a> User<'a> {
         name: &'a str,
         email: Option<&'a str>,
         access_token: &'a str,
+        config: impl Into<GeneralConfig>,
+        pfp: Option<&'a [u8]>,
     ) -> Result<Vec<u8>, ErrorStatus> {
-        serde_json::to_vec(&Self::new(name, email, access_token)).map_err(|_| err_stt!(422))
+        serde_json::to_vec(&Self::new(name, email, access_token, config.into(), pfp))
+            .map_err(|_| err_stt!(422))
     }
 
     pub fn serialize(self) -> Result<Vec<u8>, ErrorStatus> {

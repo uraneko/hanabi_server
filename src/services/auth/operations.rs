@@ -204,3 +204,13 @@ pub async fn db_clear_login_access_nameless(
 
     Ok(())
 }
+
+pub async fn db_fetch_user_config_pfp(
+    conn: &mut SqliteConnection,
+    name: &str,
+) -> Result<Vec<SqliteRow>> {
+    sqlx::query("select config, pfp from configs where user = $1")
+        .bind(name)
+        .fetch_all(conn)
+        .await
+}

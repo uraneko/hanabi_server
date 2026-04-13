@@ -1,22 +1,19 @@
-use crate::parse::Section;
 use crate::parse::{Attribute, Component, Property};
-use crate::parse::{Error, Parse, parse_vec};
+use crate::parse::{Error, Parse};
 use core::iter::Peekable;
-use num_into_ascii::NumToAscii;
-use std::collections::HashMap;
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct UserConfig {
     account_security: Security,
     colors: Colorschemes,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct Colorschemes {
     preferred: Option<String>,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct Security {
     send_me_emails: bool,
     expose_my_address: bool,
@@ -135,4 +132,3 @@ fn stream_colorschemes(colors: &Colorschemes) -> impl IntoIterator<Item = u8> {
         .unwrap_or_default()
         .copied()
 }
-

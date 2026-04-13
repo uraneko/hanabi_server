@@ -5,14 +5,14 @@ use core::iter::Peekable;
 use num_into_ascii::NumToAscii;
 use std::collections::HashMap;
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct ServerConfig {
     plugins: HashMap<String, Plugin>,
     colors: Colorschemes,
     // TODO
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct Plugin {
     depict: String,
     root: String,
@@ -21,7 +21,7 @@ pub struct Plugin {
     disabled: bool,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct Colorscheme {
     pinned: bool,
     disabled: bool,
@@ -29,13 +29,13 @@ pub struct Colorscheme {
     selectors: HashMap<String, Vec<usize>>,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct Colorschemes {
     preferred: Option<String>,
     schemes: HashMap<String, Colorscheme>,
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, Clone, serde::Deserialize)]
 pub struct Prop {
     val: String,
     idx: usize,
